@@ -1,9 +1,11 @@
 package com.andersonpimentel.todolist.ui
 
+import android.app.Activity
 import android.os.Bundle
 import android.os.PersistableBundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import com.andersonpimentel.todolist.R
 import com.andersonpimentel.todolist.databinding.ActivityTaskAddBinding
 import com.andersonpimentel.todolist.datasource.TaskDataSource
 import com.andersonpimentel.todolist.extensions.format
@@ -22,6 +24,17 @@ class AddTaskActivity: AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityTaskAddBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        if (intent.hasExtra(TASK_ID)) {
+            val taskId = intent.getIntExtra(TASK_ID, 0)
+            TaskDataSource.findById(taskId)?.let {
+                binding.tilTitle.text = it.title
+                binding.tilDescription.text = it.description
+                binding.tilDate.text = it.date
+                binding.tilHour.text = it.hour
+                binding.btnNewTask.text = getString(R.string.label_update_task)
+            }
+        }
 
         insertListeners()
 
@@ -59,11 +72,19 @@ class AddTaskActivity: AppCompatActivity() {
                 title = binding.tilTitle.text,
                 description = binding.tilDescription.text,
                 date = binding.tilDate.text,
-                hour = binding.tilHour.text
+                hour = binding.tilHour.text,
+                id = intent.getIntExtra(TASK_ID, 0)
             )
             TaskDataSource.insertTask(task)
             Log.e("TAG", TaskDataSource.getList().toString())
+
+            setResult(Activity.RESULT_OK)
+            finish()
         }
+    }
+
+    companion object {
+        const val TASK_ID = "task_id"
     }
 
 }
