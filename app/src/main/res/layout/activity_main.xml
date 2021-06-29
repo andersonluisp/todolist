@@ -16,6 +16,10 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <include
+        android:id="@+id/include_empty"
+        layout="@layout/empty_state" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_tasks"
         android:layout_width="match_parent"
@@ -28,6 +32,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toTopOf="@id/fab"
+        tools:visibility="gone"
         />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
