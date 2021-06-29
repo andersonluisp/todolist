@@ -11,4 +11,13 @@
     <string name="label_edit">Editar</string>
     <string name="label_delete">Deletar</string>
     <string name="label_you_dont_have_tasks">Ops, você não possui\nnenhuma tarefa.</string>
+    <string name="label_login">Login</string>
+    <string name="label_email">Email</string>
+    <string name="label_senha">Senha</string>
+    <string name="label_enter">Entrar</string>
+    <string name="label_dont_have_account">Não tem uma conta? Crie aqui!</string>
+    <string name="label_signup">Cadastre-se</string>
+    <string name="create_account">Criar Conta</string>
+    <string name="label_name">Nome</string>
+    <string name="label_profile_photo">Foto</string>
 </resources>
