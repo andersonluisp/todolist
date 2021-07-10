@@ -71,6 +71,9 @@ class LoginActivity : AppCompatActivity() {
             FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
                 .addOnSuccessListener {
                     Log.i("Teste", it!!.user!!.uid)
+                    val intent = Intent(this, MainActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK + Intent.FLAG_ACTIVITY_NEW_TASK
+                    startActivity(intent)
                 }
                 .addOnFailureListener { e ->
                     Log.e("Teste", e.message.toString())

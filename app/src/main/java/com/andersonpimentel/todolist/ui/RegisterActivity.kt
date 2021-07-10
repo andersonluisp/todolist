@@ -11,6 +11,7 @@ import android.preference.PreferenceManager
 import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
+import androidx.core.widget.addTextChangedListener
 import com.andersonpimentel.todolist.R
 import com.andersonpimentel.todolist.databinding.ActivityRegisterBinding
 import com.andersonpimentel.todolist.extensions.text
@@ -44,6 +45,10 @@ class RegisterActivity : AppCompatActivity() {
         binding.btnProfilePhoto.setOnClickListener {
             selectPhoto()
         }
+
+        textChangedListener()
+
+        binding.toolbar.setNavigationOnClickListener { finish() }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -62,6 +67,20 @@ class RegisterActivity : AppCompatActivity() {
         }
     }
 
+    private fun textChangedListener() {
+        binding.etRegisterEmail.addTextChangedListener {
+            binding.tilEmail.error = null
+        }
+
+        binding.etRegisterName.addTextChangedListener {
+            binding.tilName.error = null
+        }
+
+        binding.etRegisterPassword.addTextChangedListener {
+            binding.tilPassword.error = null
+        }
+    }
+
 
     private fun selectPhoto() {
         val intent = Intent(Intent.ACTION_PICK);
@@ -75,8 +94,15 @@ class RegisterActivity : AppCompatActivity() {
         val password = binding.tilPassword.text
 
         if(email.isNullOrBlank() || password.isNullOrBlank() || name.isNullOrBlank()){
-            Toast.makeText(this, "Email e Senha devem ser preenchidos", Toast.LENGTH_SHORT).show()
-            Log.e("Teste", "Email e Senha devem ser preenchidos")
+            Toast.makeText(this, "Nome, Email e Senha devem ser preenchidos", Toast.LENGTH_SHORT).show()
+            Log.e("Teste", "Nome, Email e Senha devem ser preenchidos")
+
+            if(email.isNullOrBlank()) binding.tilEmail.error = "Email não pode estar em branco"
+
+            if(password.isNullOrBlank()) binding.tilPassword.error = "Senha não pode estar em branco"
+
+            if(name.isNullOrBlank()) binding.tilName.error = "Nome não pode estar em branco"
+
         } else{
 
         FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
@@ -84,11 +110,40 @@ class RegisterActivity : AppCompatActivity() {
                 if (it.isSuccessful) {
                     Log.i("Teste", it.result!!.user!!.uid)
                     saveUserInFirebase()
-                    finish()
+                    val intent = Intent(this, MainActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK + Intent.FLAG_ACTIVITY_NEW_TASK
+                    startActivity(intent)
                 }
             }
             .addOnFailureListener { e ->
                 Log.e("Teste", e.message.toString())
+
+                when (e.message.toString()) {
+                    "The email address is badly formatted." -> {
+                        Toast.makeText(
+                            this,
+                            "Email inválido",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        binding.tilEmail.error = "Email inválido"
+                    }
+                    "The given password is invalid. [ Password should be at least 6 characters ]" -> {
+                        Toast.makeText(
+                            this,
+                            "A senha deve ter 6 caracteres",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        binding.tilPassword.error = "A senha deve ter 6 caracteres"
+                    }
+                    "There is no user record corresponding to this identifier. The user may have been deleted." -> {
+                        Toast.makeText(
+                            this,
+                            "Usuário não encontrado",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        binding.tilEmail.error = "Usuário não encontrado"
+                    }
+                }
             }
 
         }

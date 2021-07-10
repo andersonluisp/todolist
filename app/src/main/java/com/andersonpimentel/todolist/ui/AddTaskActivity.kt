@@ -25,6 +25,11 @@ class AddTaskActivity: AppCompatActivity() {
         binding = ActivityTaskAddBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setSupportActionBar(binding.addToolbar)
+        binding.addToolbar.setNavigationOnClickListener {
+            finish()
+        }
+
         if (intent.hasExtra(TASK_ID)) {
             val taskId = intent.getIntExtra(TASK_ID, 0)
             TaskDataSource.findById(taskId)?.let {

@@ -13,7 +13,9 @@
         app:layout_constraintTop_toTopOf="parent"
         app:title="@string/label_signup"
         app:titleMarginStart="40dp"
-        app:titleTextAppearance="@style/tasks_title" />
+        app:titleTextAppearance="@style/tasks_title"
+        app:navigationIcon="@drawable/ic_navigate"
+        />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guide_start"
@@ -64,6 +66,7 @@
         app:layout_constraintTop_toBottomOf="@id/btn_profile_photo">
 
         <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/et_register_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:inputType="textEmailAddress" />
@@ -81,6 +84,7 @@
         app:layout_constraintTop_toBottomOf="@id/til_name">
 
         <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/et_register_email"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:inputType="textEmailAddress" />
@@ -93,11 +97,13 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:hint="@string/label_senha"
+        app:helperText="Senha deve 6 caracteres"
         app:layout_constraintEnd_toEndOf="@id/guide_end"
         app:layout_constraintStart_toStartOf="@id/guide_start"
         app:layout_constraintTop_toBottomOf="@id/til_email">
 
         <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/et_register_password"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:inputType="textPassword" />
