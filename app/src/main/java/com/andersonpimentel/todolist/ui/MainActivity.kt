@@ -1,19 +1,21 @@
 package com.andersonpimentel.todolist.ui
 
 import android.content.Intent
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import com.andersonpimentel.todolist.R
 import com.andersonpimentel.todolist.databinding.ActivityMainBinding
 import com.andersonpimentel.todolist.datasource.TaskDataSource
+import com.andersonpimentel.todolist.ui.signin.LoginActivity
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
 
@@ -29,7 +31,7 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(binding.mainToolbar)
 
         binding.rvTasks.adapter = adapter
-        updateList()
+        //updateList()
         insertListeners()
 
     }
@@ -82,10 +84,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateList(){
-        val list = TaskDataSource.getList()
-        binding.includeEmpty.emptyState.visibility = if(list.isEmpty()) View.VISIBLE
-        else View.GONE
-        adapter.submitList(list)
+        //val list = TaskDataSource.getList()
+        CoroutineScope(Dispatchers.IO).launch {
+            val listFirebase = TaskDataSource.getListFirebase(FirebaseAuth.getInstance().uid)
+            withContext(Main){
+                binding.includeEmpty.emptyState.visibility = if(listFirebase.isEmpty()) View.VISIBLE
+                else View.GONE
+                adapter.submitList(listFirebase)
+            }
+        }
     }
 
     companion object{

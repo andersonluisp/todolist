@@ -2,10 +2,10 @@ package com.andersonpimentel.todolist.model
 
 data class Task(
     val id: Int = 0,
-    val title: String,
-    val description: String,
-    val date: String,
-    val hour: String
+    val title: String = "",
+    val description: String = "",
+    val date: String = "",
+    val hour: String = ""
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -21,4 +21,6 @@ data class Task(
     override fun hashCode(): Int {
         return id
     }
+
 }
+

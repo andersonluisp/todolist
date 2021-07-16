@@ -14,6 +14,12 @@ import com.andersonpimentel.todolist.model.Task
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.timepicker.MaterialTimePicker
 import com.google.android.material.timepicker.TimeFormat
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.*
 
 class AddTaskActivity: AppCompatActivity() {
@@ -73,6 +79,7 @@ class AddTaskActivity: AppCompatActivity() {
         }
 
         binding.btnNewTask.setOnClickListener {
+            val uid = FirebaseAuth.getInstance().uid
             val task = Task(
                 title = binding.tilTitle.text,
                 description = binding.tilDescription.text,
@@ -80,11 +87,15 @@ class AddTaskActivity: AppCompatActivity() {
                 hour = binding.tilHour.text,
                 id = intent.getIntExtra(TASK_ID, 0)
             )
-            TaskDataSource.insertTask(task)
-            Log.e("TAG", TaskDataSource.getList().toString())
+            CoroutineScope(IO).launch {
+                TaskDataSource.insertTaskFirebase(task, uid)
+                withContext(Main){
+                    Log.e("TAG", TaskDataSource.getList().toString())
+                    setResult(Activity.RESULT_OK)
+                    finish()
+                }
+            }
 
-            setResult(Activity.RESULT_OK)
-            finish()
         }
     }
 

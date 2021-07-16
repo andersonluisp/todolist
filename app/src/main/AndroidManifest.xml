@@ -13,8 +13,8 @@
         android:theme="@style/Theme.ToDoList"
         android:usesCleartextTraffic="true"
         >
-        <activity android:name=".ui.RegisterActivity"></activity>
-        <activity android:name=".ui.LoginActivity">
+        <activity android:name=".ui.signin.RegisterActivity"></activity>
+        <activity android:name=".ui.signin.LoginActivity">
         </activity>
         <activity android:name=".ui.MainActivity">
             <intent-filter>
