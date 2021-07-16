@@ -29,15 +29,14 @@ class LoginActivity : AppCompatActivity() {
             LoginViewModel.LoginViewModelFactory(repository)
         ).get(LoginViewModel::class.java)
 
-        loginViewModel.resultLiveData.observe(this){
-            verifyLoginResult(it)
-            Log.e("LiveData", it!!)
-        }
 
         btnEnterClickListener()
         dontHaveAccountClickListener()
         textChangedListener()
-
+        loginViewModel.resultLiveData.observe(this){
+            verifyLoginResult(it)
+            Log.e("LiveData", it!!)
+        }
     }
 
     private fun textChangedListener() {
@@ -69,25 +68,21 @@ class LoginActivity : AppCompatActivity() {
         binding.tilPassword.error = null
     }
 
-    private fun verifyEmptyEditText(email: String, password: String): Boolean {
-        var result = false
-        if (email.isNullOrBlank() || password.isNullOrBlank()) {
-            Toast.makeText(
-                this,
-                "Email e Senha devem ser preenchidos",
-                Toast.LENGTH_SHORT
-            )
-                .show()
-            if (email.isNullOrBlank()) binding.tilEmail.error = "Email não pode estar em branco"
+    private fun showErrorEmailOrPasswordBlank(email: String, password: String) {
+        Toast.makeText(
+            this,
+            "Email e Senha devem ser preenchidos",
+            Toast.LENGTH_SHORT
+        )
+            .show()
+        if (email.isNullOrBlank()) binding.tilEmail.error =
+            "Você precisa digitar o email da sua conta"
 
-            if (password.isNullOrBlank()) binding.tilPassword.error =
-                "Senha não pode estar em branco"
+        if (password.isNullOrBlank()) binding.tilPassword.error =
+            "Você precisa digitar a senha da sua conta"
 
-            Log.e("Teste", "Email e Senha devem ser preenchidos")
+        Log.e("Teste", "Email e Senha devem ser preenchidos")
 
-            result = true
-        }
-        return result
     }
 
     private fun verifyLoginResult(result: String?) {
@@ -130,7 +125,9 @@ class LoginActivity : AppCompatActivity() {
         val email = binding.tilEmail.text
         val password = binding.tilPassword.text
 
-        if (!verifyEmptyEditText(email, password)){
+        if (loginViewModel.verifyEmailOrPasswordIsblank(email, password)){
+            showErrorEmailOrPasswordBlank(email, password)
+        } else{
             loginViewModel.authUserInFirebase(email, password)
         }
     }

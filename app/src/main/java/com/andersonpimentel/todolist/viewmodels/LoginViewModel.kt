@@ -25,11 +25,16 @@ class LoginViewModel(private val repository: AppRepository): ViewModel() {
                     repository.authUserInFirebase(email, password).await()
                     resultLiveData.postValue("success")
                 } catch (e: Throwable) {
-                    Log.e("Teste", e.message.toString())
-                    resultLiveData.postValue(e.message.toString())
+                    val exceptionMessage = e.message.toString()
+                    Log.e("Teste", exceptionMessage)
+                    resultLiveData.postValue(exceptionMessage)
                 }
             }.await()
         }
+    }
+
+    fun verifyEmailOrPasswordIsblank(email: String, password: String): Boolean {
+        return email.isBlank() || password.isBlank()
     }
 
     class LoginViewModelFactory (
