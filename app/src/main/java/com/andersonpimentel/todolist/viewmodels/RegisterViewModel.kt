@@ -36,6 +36,10 @@ class RegisterViewModel(private val repository: AppRepository) : ViewModel() {
         }
     }
 
+    fun verifyEmptyRegisterData(username: String, email: String, password: String): Boolean {
+        return email.isBlank() || password.isBlank() || username.isBlank()
+    }
+
     class RegisterViewModelFactory (
         private val repository: AppRepository
     ) : ViewModelProvider.Factory{

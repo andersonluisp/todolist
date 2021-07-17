@@ -36,11 +36,6 @@ class RegisterActivity() : AppCompatActivity() {
 
         clickListeners()
         textChangedListener()
-
-        registerViewModel.resultLiveData.observe(this){
-            verifyEmailAndPassword(binding.tilName.text, it)
-            Log.e("LiveData", it!!)
-        }
     }
 
     private fun clickListeners() {
@@ -96,26 +91,17 @@ class RegisterActivity() : AppCompatActivity() {
         startActivityForResult(intent, 0)
     }
 
-    private fun verifyEmptyTexts(name: String, email: String, password: String): Boolean{
-        var result = false
-        if (email.isNullOrBlank() || password.isNullOrBlank() || name.isNullOrBlank()) {
-
-            Toast.makeText(this, "Nome, Email e Senha devem ser preenchidos", Toast.LENGTH_SHORT)
-                .show()
-
-            Log.e("Teste", "Nome, Email e Senha devem ser preenchidos")
-
-            if (email.isNullOrBlank()) binding.tilEmail.error = "Email não pode estar em branco"
-            if (password.isNullOrBlank()) binding.tilPassword.error =
-                "Senha não pode estar em branco"
-            if (name.isNullOrBlank()) binding.tilName.error = "Nome não pode estar em branco"
-
-            result = true
-        }
-        return result
+    private fun showwErrorEmptyData(name: String, email: String, password: String) {
+        Toast.makeText(this, "Nome, Email e Senha devem ser preenchidos", Toast.LENGTH_SHORT)
+            .show()
+        Log.e("Teste", "Nome, Email e Senha devem ser preenchidos")
+        if (email.isNullOrBlank()) binding.tilEmail.error = "Email não pode estar em branco"
+        if (password.isNullOrBlank()) binding.tilPassword.error =
+            "Senha não pode estar em branco"
+        if (name.isNullOrBlank()) binding.tilName.error = "Nome não pode estar em branco"
     }
 
-    private fun verifyEmailAndPassword(username: String, result: String?) {
+    private fun verifyEmailAndPassword(result: String?) {
         when (result) {
             "success" -> {
                 Log.e("Success", "Success")
@@ -164,7 +150,14 @@ class RegisterActivity() : AppCompatActivity() {
         val email = binding.tilEmail.text
         val password = binding.tilPassword.text
 
-        if (!verifyEmptyTexts(name, email, password)) {
+        registerViewModel.resultLiveData.observe(this){
+            verifyEmailAndPassword(it)
+            Log.e("LiveData", it!!)
+        }
+
+        if (registerViewModel.verifyEmptyRegisterData(name, email, password)) {
+            showwErrorEmptyData(name, email, password)
+        } else{
             registerViewModel.createUserInFirebase(name, email, password, mPhotoUri)
         }
     }
