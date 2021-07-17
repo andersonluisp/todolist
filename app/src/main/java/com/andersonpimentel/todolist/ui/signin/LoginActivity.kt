@@ -33,10 +33,7 @@ class LoginActivity : AppCompatActivity() {
         btnEnterClickListener()
         dontHaveAccountClickListener()
         textChangedListener()
-        loginViewModel.resultLiveData.observe(this){
-            verifyLoginResult(it)
-            Log.e("LiveData", it!!)
-        }
+
     }
 
     private fun textChangedListener() {
@@ -124,6 +121,11 @@ class LoginActivity : AppCompatActivity() {
     private fun loginUser(){
         val email = binding.tilEmail.text
         val password = binding.tilPassword.text
+
+        loginViewModel.resultLiveData.observe(this){
+            verifyLoginResult(it)
+            Log.e("LiveData", it!!)
+        }
 
         if (loginViewModel.verifyEmailOrPasswordIsblank(email, password)){
             showErrorEmailOrPasswordBlank(email, password)
