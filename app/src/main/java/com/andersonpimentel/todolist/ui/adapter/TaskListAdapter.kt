@@ -55,7 +55,14 @@ class TaskListAdapter: ListAdapter<Task, TaskListAdapter.TaskViewHolder>(DiffCal
 }
 
 class DiffCallback: DiffUtil.ItemCallback<Task>(){
-    override fun areItemsTheSame(oldItem: Task, newItem: Task): Boolean = oldItem == newItem
-    override fun areContentsTheSame(oldItem: Task, newItem: Task): Boolean = oldItem.id == newItem.id
-
+    override fun areItemsTheSame(oldItem: Task, newItem: Task): Boolean{
+        return oldItem == newItem
+    }
+    override fun areContentsTheSame(oldItem: Task, newItem: Task): Boolean{
+     return oldItem.id == newItem.id
+             && oldItem.title == newItem.title
+             && oldItem.description == newItem.description
+             && oldItem.date == newItem.date
+             && oldItem.hour == newItem.hour
+    }
 }

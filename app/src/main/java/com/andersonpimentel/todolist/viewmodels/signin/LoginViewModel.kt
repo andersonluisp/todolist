@@ -1,39 +1,37 @@
-package com.andersonpimentel.todolist.viewmodels
+package com.andersonpimentel.todolist.viewmodels.signin
 
-import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.andersonpimentel.todolist.model.AppRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 class LoginViewModel(private val repository: AppRepository): ViewModel() {
-    var resultLiveData = MutableLiveData<String?>()
+    var resultLoginLiveData = MutableLiveData<String?>()
 
     fun authUserInFirebase(
         email: String,
         password: String
-    ){
-        CoroutineScope(Dispatchers.Main).launch {
-            CoroutineScope(Dispatchers.Default).async {
+    ) {
+        if (verifyEmptyLoginData(email, password)) {
+            resultLoginLiveData.postValue("Email or password is blank")
+        } else {
+            CoroutineScope(Dispatchers.Default).launch {
                 try {
-                    Log.e("Teste", "User Logged")
                     repository.authUserInFirebase(email, password).await()
-                    resultLiveData.postValue("success")
+                    resultLoginLiveData.postValue("success")
                 } catch (e: Throwable) {
                     val exceptionMessage = e.message.toString()
-                    Log.e("Teste", exceptionMessage)
-                    resultLiveData.postValue(exceptionMessage)
+                    resultLoginLiveData.postValue(exceptionMessage)
                 }
-            }.await()
+            }
         }
     }
 
-    fun verifyEmailOrPasswordIsblank(email: String, password: String): Boolean {
+    private fun verifyEmptyLoginData(email: String, password: String): Boolean {
         return email.isBlank() || password.isBlank()
     }
 

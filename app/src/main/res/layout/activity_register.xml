@@ -22,14 +22,14 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        app:layout_constraintGuide_begin="32dp" />
+        app:layout_constraintGuide_begin="16dp" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guide_end"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        app:layout_constraintGuide_end="32dp" />
+        app:layout_constraintGuide_end="16dp" />
 
     <de.hdodenhof.circleimageview.CircleImageView
         android:id="@+id/cmv_photo"

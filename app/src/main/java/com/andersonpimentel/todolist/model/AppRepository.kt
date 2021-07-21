@@ -1,16 +1,20 @@
 package com.andersonpimentel.todolist.model
 
-import android.content.Intent
 import android.net.Uri
 import android.util.Log
-import com.andersonpimentel.todolist.ui.MainActivity
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.*
@@ -19,6 +23,7 @@ class AppRepository {
     private val firebaseAuth = FirebaseAuth.getInstance()
     private val firebaseStorage = FirebaseStorage.getInstance()
     private val firebaseFirestore = FirebaseFirestore.getInstance()
+    val listTask = MutableLiveData<List<com.andersonpimentel.todolist.model.Task>>()
 
     suspend fun createUserInFirebase(email: String, password: String): Task<AuthResult> {
         return withContext(CoroutineScope(IO).coroutineContext) {
@@ -42,26 +47,20 @@ class AppRepository {
                 ref.putFile(mPhotoUri)
                     .addOnSuccessListener {
                         ref.downloadUrl.addOnSuccessListener() { uri ->
-                            Log.i("Teste", uri.toString())
+                            Log.i("PhotoUrl", uri.toString())
                             val profileUrl = uri.toString()
                             val user = User(
                                 uuid = uid,
                                 username = username,
                                 profileUrl = profileUrl
                             )
-
-                            firebaseFirestore.collection("users")
-                                .document(uid)
-                                .set(user)
-                                .addOnSuccessListener {
-                                }
-                                .addOnFailureListener { e ->
-                                    Log.e("Teste", e.message.toString())
-                                }
+                            CoroutineScope(IO).launch {
+                            createUserInFirestore(uid, user)
+                            }
                         }
                     }
                     .addOnFailureListener { e ->
-                        Log.e("Teste", e.message.toString(), e)
+                        Log.e("FirebaseStorage", e.message.toString(), e)
                     }.await()
             } else {
                 val user = User(
@@ -69,16 +68,22 @@ class AppRepository {
                     username = username,
                     profileUrl = ""
                 )
-                firebaseFirestore.collection("users")
-                    .document(uid)
-                    .set(user)
-                    .addOnSuccessListener {
-                        //Log.e("Teste", it.toString())
-                    }
-                    .addOnFailureListener { e ->
-                        Log.e("Teste", e.message.toString())
-                    }.await()
+                createUserInFirestore(uid, user)
             }
+        }
+    }
+
+    suspend fun createUserInFirestore(uid: String, user: User){
+        withContext(IO){
+            firebaseFirestore.collection("users")
+                .document(uid)
+                .set(user)
+                .addOnSuccessListener {
+                    Log.i("Firestore", "User was created in FireStore")
+                }
+                .addOnFailureListener { e ->
+                    Log.e("Firestore", e.message.toString())
+                }.await()
         }
     }
 
@@ -86,11 +91,92 @@ class AppRepository {
         return withContext(CoroutineScope(IO).coroutineContext) {
             firebaseAuth.signInWithEmailAndPassword(email, password)
                 .addOnSuccessListener {
-                    Log.i("Teste", it!!.user!!.uid)
+                    Log.i("Login", "Login Success ${it!!.user!!.uid}")
                 }
                 .addOnFailureListener { e ->
-                    Log.e("Teste", e.message.toString())
+                    Log.e("Login", e.message.toString())
                 }
+        }
+    }
+
+    suspend fun getTaskListFirebase() {
+        val listFirebase = arrayListOf<com.andersonpimentel.todolist.model.Task>()
+        withContext(IO) {
+            var uid: String? = null
+            CoroutineScope(IO).async { uid = FirebaseAuth.getInstance().uid }.await()
+            FirebaseFirestore.getInstance().collection("/users")
+                .document(uid!!)
+                .collection("/tasks")
+                .addSnapshotListener { value, error ->
+                    val documentChanges = value?.documentChanges
+                    if (documentChanges != null) {
+                        documentChanges.forEach { documentChange ->
+                            if (documentChange.type == DocumentChange.Type.ADDED) {
+                                val task =
+                                    documentChange.document.toObject(com.andersonpimentel.todolist.model.Task::class.java)
+                                Log.e("GetTask", task.title)
+                                listFirebase.add(task)
+                            }
+                            if (documentChange.type == DocumentChange.Type.MODIFIED) {
+                                val task =
+                                    documentChange.document.toObject(com.andersonpimentel.todolist.model.Task::class.java)
+                                val taskEditIndex = listFirebase.indexOf(task)
+                                listFirebase.removeAt(taskEditIndex)
+                                listFirebase.add(taskEditIndex, task)
+                            }
+
+                            if (documentChange.type == DocumentChange.Type.REMOVED) {
+                                val task =
+                                    documentChange.document.toObject(com.andersonpimentel.todolist.model.Task::class.java)
+                                val taskRemovedIndex = listFirebase.indexOf(task)
+                                listFirebase.removeAt(taskRemovedIndex)
+                            }
+                        }
+                        listFirebase.sortBy { it.id }
+                        listTask.postValue(listFirebase)
+                    }
+                }
+        }
+    }
+
+    suspend fun insertTaskFirebase(
+        task: com.andersonpimentel.todolist.model.Task,
+        id: Int
+    ) {
+        withContext(IO) {
+            val uid = FirebaseAuth.getInstance().uid
+            val newTask = task.copy(id = id)
+            FirebaseFirestore.getInstance().collection("/users")
+                .document(uid!!)
+                .collection("/tasks")
+                .document(newTask.id.toString())
+                .set(newTask)
+                .addOnSuccessListener {
+                    Log.e("InsertTask", "Added")
+                }
+                .addOnFailureListener { e ->
+                    Log.e("InsertTask", e.message.toString(), e)
+                }.await()
+        }
+    }
+
+    suspend fun removeTaskFirebase(
+        id: Int
+    ) {
+        var uid: String? = null
+        CoroutineScope(IO).async { uid = FirebaseAuth.getInstance().uid }.await()
+        withContext(IO) {
+            FirebaseFirestore.getInstance().collection("/users")
+                .document(uid!!)
+                .collection("/tasks")
+                .document(id.toString())
+                .delete()
+                .addOnSuccessListener {
+                    Log.i("RemoveTask", "Deleted task")
+                }
+                .addOnFailureListener { e ->
+                    Log.e("RemoveTAsk", e.message.toString(), e)
+                }.await()
         }
     }
 }

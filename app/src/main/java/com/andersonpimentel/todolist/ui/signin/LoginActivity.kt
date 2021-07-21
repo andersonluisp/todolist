@@ -11,7 +11,7 @@ import com.andersonpimentel.todolist.databinding.ActivityLoginBinding
 import com.andersonpimentel.todolist.extensions.text
 import com.andersonpimentel.todolist.model.AppRepository
 import com.andersonpimentel.todolist.ui.MainActivity
-import com.andersonpimentel.todolist.viewmodels.LoginViewModel
+import com.andersonpimentel.todolist.viewmodels.signin.LoginViewModel
 
 class LoginActivity : AppCompatActivity() {
 
@@ -33,7 +33,14 @@ class LoginActivity : AppCompatActivity() {
         btnEnterClickListener()
         dontHaveAccountClickListener()
         textChangedListener()
+        observers()
 
+    }
+
+    private fun observers() {
+        loginViewModel.resultLoginLiveData.observe(this){
+            verifyLoginResult(it)
+        }
     }
 
     private fun textChangedListener() {
@@ -83,12 +90,17 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun verifyLoginResult(result: String?) {
+        val email = binding.tilEmail.text
+        val password = binding.tilPassword.text
+
         when (result) {
             "success" -> {
-                Log.i("Teste", result)
                 val intent = Intent(this, MainActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK + Intent.FLAG_ACTIVITY_NEW_TASK
                 startActivity(intent)
+            }
+            "Email or password is blank" -> {
+                showErrorEmailOrPasswordBlank(email, password)
             }
             "The email address is badly formatted." -> {
                 Toast.makeText(
@@ -115,22 +127,11 @@ class LoginActivity : AppCompatActivity() {
                 binding.tilEmail.error = "Usuário não encontrado"
             }
         }
-
     }
 
     private fun loginUser(){
         val email = binding.tilEmail.text
         val password = binding.tilPassword.text
-
-        loginViewModel.resultLiveData.observe(this){
-            verifyLoginResult(it)
-            Log.e("LiveData", it!!)
-        }
-
-        if (loginViewModel.verifyEmailOrPasswordIsblank(email, password)){
-            showErrorEmailOrPasswordBlank(email, password)
-        } else{
-            loginViewModel.authUserInFirebase(email, password)
-        }
+        loginViewModel.authUserInFirebase(email, password)
     }
 }

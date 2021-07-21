@@ -1,20 +1,17 @@
-package com.andersonpimentel.todolist.viewmodels
+package com.andersonpimentel.todolist.viewmodels.signin
 
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewModelScope
 import com.andersonpimentel.todolist.model.AppRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.Default
-import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.tasks.await
 
 class RegisterViewModel(private val repository: AppRepository) : ViewModel() {
-    var resultLiveData = MutableLiveData<String?>()
+    var resultRegisterLiveData = MutableLiveData<String?>()
 
     fun createUserInFirebase(
         username: String,
@@ -22,18 +19,26 @@ class RegisterViewModel(private val repository: AppRepository) : ViewModel() {
         password: String,
         mPhotoUri: Uri?
     ) {
-        CoroutineScope(Main).launch {
-            CoroutineScope(Default).async {
-                try {
-                    repository.createUserInFirebase(email, password).await()
-                    resultLiveData.postValue("success")
-                    repository.saveUserInFirebase(mPhotoUri, username)
-                } catch (e: Throwable) {
-                    Log.e("Teste", e.message.toString())
-                    resultLiveData.postValue(e.message.toString())
-                }
-            }.await()
+        if (verifyEmptyRegisterData(username, email, password)) {
+            val resultRegister = "Some data is blank"
+            postValueLiveData(resultRegister, resultRegisterLiveData)
+        } else{
+        CoroutineScope(Default).launch {
+            try {
+                repository.createUserInFirebase(email, password).await()
+                resultRegisterLiveData.postValue("success")
+                repository.saveUserInFirebase(mPhotoUri, username)
+                Log.i("Firebase", "User has been successfully registered in Firebase")
+            } catch (e: Throwable) {
+                Log.e("Firebase", e.message.toString())
+                resultRegisterLiveData.postValue(e.message.toString())
+            }
         }
+        }
+    }
+
+    fun postValueLiveData (result: String?,  livedata: MutableLiveData<String?>){
+        livedata.postValue(result)
     }
 
     fun verifyEmptyRegisterData(username: String, email: String, password: String): Boolean {

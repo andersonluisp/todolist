@@ -15,7 +15,8 @@ import com.andersonpimentel.todolist.databinding.ActivityRegisterBinding
 import com.andersonpimentel.todolist.extensions.text
 import com.andersonpimentel.todolist.model.AppRepository
 import com.andersonpimentel.todolist.ui.MainActivity
-import com.andersonpimentel.todolist.viewmodels.RegisterViewModel
+import com.andersonpimentel.todolist.viewmodels.signin.RegisterViewModel
+import com.google.android.material.textfield.TextInputLayout
 
 class RegisterActivity() : AppCompatActivity() {
 
@@ -34,8 +35,15 @@ class RegisterActivity() : AppCompatActivity() {
             RegisterViewModel.RegisterViewModelFactory(repository)
         ).get(RegisterViewModel::class.java)
 
+        observers()
         clickListeners()
         textChangedListener()
+    }
+
+    private fun observers() {
+        registerViewModel.resultRegisterLiveData.observe(this){
+            verifyEmailAndPassword(it)
+        }
     }
 
     private fun clickListeners() {
@@ -62,26 +70,26 @@ class RegisterActivity() : AppCompatActivity() {
 
         if (requestCode == 0 && data != null){
             mPhotoUri = data.data
-            var bitmap: Bitmap? = null
+            val bitmap: Bitmap?
             try {
                 bitmap = MediaStore.Images.Media.getBitmap(contentResolver, mPhotoUri)
                 binding.cmvPhoto.setImageDrawable(BitmapDrawable(bitmap))
                 binding.btnProfilePhoto.alpha = 0F
             }catch (e: Exception){
-
+                Log.e("PhotoProfile", e.toString())
             }
         }
     }
 
     private fun textChangedListener() {
         binding.etRegisterEmail.addTextChangedListener {
-            binding.tilEmail.error = null
+            cleanEditTextErrors()
         }
         binding.etRegisterName.addTextChangedListener {
-            binding.tilName.error = null
+            cleanEditTextErrors()
         }
         binding.etRegisterPassword.addTextChangedListener {
-            binding.tilPassword.error = null
+            cleanEditTextErrors()
         }
     }
 
@@ -91,74 +99,76 @@ class RegisterActivity() : AppCompatActivity() {
         startActivityForResult(intent, 0)
     }
 
-    private fun showwErrorEmptyData(name: String, email: String, password: String) {
-        Toast.makeText(this, "Nome, Email e Senha devem ser preenchidos", Toast.LENGTH_SHORT)
-            .show()
-        Log.e("Teste", "Nome, Email e Senha devem ser preenchidos")
-        if (email.isNullOrBlank()) binding.tilEmail.error = "Email não pode estar em branco"
-        if (password.isNullOrBlank()) binding.tilPassword.error =
-            "Senha não pode estar em branco"
-        if (name.isNullOrBlank()) binding.tilName.error = "Nome não pode estar em branco"
-    }
-
     private fun verifyEmailAndPassword(result: String?) {
+        val name = binding.tilName.text
+        val email = binding.tilEmail.text
+        val password = binding.tilPassword.text
+        val error: String
+
         when (result) {
             "success" -> {
-                Log.e("Success", "Success")
-                val intent = Intent(applicationContext, MainActivity::class.java)
-                intent.flags =
-                    Intent.FLAG_ACTIVITY_CLEAR_TASK + Intent.FLAG_ACTIVITY_NEW_TASK
-                startActivity(intent)
+                startMainActivity()
+            }
+            "Some data is blank" -> {
+                showErrorEmptyData(name, email, password)
             }
             "The email address is badly formatted." -> {
-                Toast.makeText(
-                    applicationContext,
-                    "Email inválido",
-                    Toast.LENGTH_SHORT
-                ).show()
-                binding.tilEmail.error = "Email inválido"
+                error = "Email inválido"
+                showFieldError(binding.tilEmail, error)
             }
             "The given password is invalid. [ Password should be at least 6 characters ]" -> {
-                Toast.makeText(
-                    applicationContext,
-                    "A senha deve ter 6 caracteres",
-                    Toast.LENGTH_SHORT
-                ).show()
-                binding.tilPassword.error = "A senha deve ter 6 caracteres"
+                error = "A senha deve ter 6 caracteres"
+                showFieldError(binding.tilPassword, error)
             }
             "There is no user record corresponding to this identifier. The user may have been deleted." -> {
-                Toast.makeText(
-                    applicationContext,
-                    "Usuário não encontrado",
-                    Toast.LENGTH_SHORT
-                ).show()
-                binding.tilEmail.error = "Usuário não encontrado"
+                error = "Usuário não encontrado"
+                showFieldError(binding.tilEmail, error)
             }
             "The email address is already in use by another account." -> {
-                Toast.makeText(
-                    applicationContext,
-                    "Email já cadastrado",
-                    Toast.LENGTH_SHORT
-                ).show()
-                binding.tilEmail.error = "Este email possui um cadastro."
+                error = "Este email possui um cadastro."
+                showFieldError(binding.tilEmail, error)
             }
         }
+    }
+
+    private fun showToast(string: String){
+        Toast.makeText(
+            applicationContext,
+            string,
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private fun showFieldError(field: TextInputLayout, error: String){
+        showToast(error)
+        field.error = error
+    }
+
+    private fun showErrorEmptyData(name: String, email: String, password: String) {
+        val error = "Nome, Email e Senha devem ser preenchidos"
+
+        showToast(error)
+
+        Log.e("EmptyData", error)
+
+        if (email.isBlank()) showFieldError(binding.tilEmail, "Email não pode estar em branco")
+
+        if (password.isBlank()) showFieldError(binding.tilPassword, "Senha não pode estar em branco")
+
+        if (name.isBlank()) showFieldError(binding.tilName, "Nome não pode estar em branco")
+    }
+
+    private fun startMainActivity(){
+        val intent = Intent(applicationContext, MainActivity::class.java)
+        intent.flags =
+            Intent.FLAG_ACTIVITY_CLEAR_TASK + Intent.FLAG_ACTIVITY_NEW_TASK
+        startActivity(intent)
     }
 
     private fun createUser() {
         val name = binding.tilName.text
         val email = binding.tilEmail.text
         val password = binding.tilPassword.text
-
-        registerViewModel.resultLiveData.observe(this){
-            verifyEmailAndPassword(it)
-            Log.e("LiveData", it!!)
-        }
-
-        if (registerViewModel.verifyEmptyRegisterData(name, email, password)) {
-            showwErrorEmptyData(name, email, password)
-        } else{
-            registerViewModel.createUserInFirebase(name, email, password, mPhotoUri)
-        }
+        registerViewModel.createUserInFirebase(name, email, password, mPhotoUri)
     }
 }
