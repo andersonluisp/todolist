@@ -2,19 +2,18 @@ package com.andersonpimentel.todolist.ui
 
 import android.app.Activity
 import android.os.Bundle
-import android.os.PersistableBundle
-import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.ViewModelProvider
 import com.andersonpimentel.todolist.R
 import com.andersonpimentel.todolist.databinding.ActivityTaskAddBinding
-import com.andersonpimentel.todolist.datasource.TaskDataSource
 import com.andersonpimentel.todolist.extensions.format
 import com.andersonpimentel.todolist.extensions.text
+import com.andersonpimentel.todolist.model.AppRepository
 import com.andersonpimentel.todolist.model.Task
+import com.andersonpimentel.todolist.viewmodels.AddTaskViewModel
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.timepicker.MaterialTimePicker
 import com.google.android.material.timepicker.TimeFormat
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
@@ -25,30 +24,37 @@ import java.util.*
 class AddTaskActivity: AppCompatActivity() {
 
     private lateinit var binding: ActivityTaskAddBinding
+    private lateinit var addTaskViewModel: AddTaskViewModel
+    private var repository = AppRepository()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityTaskAddBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        addTaskViewModel = ViewModelProvider(
+            this,
+            AddTaskViewModel.AddTaskViewModelFactory(repository)
+        ).get(AddTaskViewModel::class.java)
+
         setSupportActionBar(binding.addToolbar)
         binding.addToolbar.setNavigationOnClickListener {
-            finish()
+            onBackPressed()
         }
 
-        if (intent.hasExtra(TASK_ID)) {
-            val taskId = intent.getIntExtra(TASK_ID, 0)
-            TaskDataSource.findById(taskId)?.let {
-                binding.tilTitle.text = it.title
-                binding.tilDescription.text = it.description
-                binding.tilDate.text = it.date
-                binding.tilHour.text = it.hour
-                binding.btnNewTask.text = getString(R.string.label_update_task)
-            }
-        }
-
+        verifyEditTask()
         insertListeners()
+    }
 
+    private fun verifyEditTask(){
+        if (intent.hasExtra(TASK)) {
+            val task = intent.getParcelableExtra<Task>(TASK)!!
+            binding.tilTitle.text = task.title
+            binding.tilDescription.text = task.description
+            binding.tilDate.text = task.date
+            binding.tilHour.text = task.hour
+            binding.btnNewTask.text = getString(R.string.label_update_task)
+        }
     }
 
     private fun insertListeners() {
@@ -69,7 +75,6 @@ class AddTaskActivity: AppCompatActivity() {
             timePicker.addOnPositiveButtonClickListener {
                 binding.tilHour.text = "${String.format("%02d",timePicker.hour)}:" +
                         String.format("%02d",timePicker.minute)
-
             }
             timePicker.show(supportFragmentManager, null)
         }
@@ -79,18 +84,23 @@ class AddTaskActivity: AppCompatActivity() {
         }
 
         binding.btnNewTask.setOnClickListener {
-            val uid = FirebaseAuth.getInstance().uid
             val task = Task(
                 title = binding.tilTitle.text,
                 description = binding.tilDescription.text,
                 date = binding.tilDate.text,
                 hour = binding.tilHour.text,
-                id = intent.getIntExtra(TASK_ID, 0)
             )
             CoroutineScope(IO).launch {
-                TaskDataSource.insertTaskFirebase(task, uid)
-                withContext(Main){
-                    Log.e("TAG", TaskDataSource.getList().toString())
+                if (intent.hasExtra(TASK)) {
+                    val newTaskId = intent.getParcelableExtra<Task>(TASK)!!.id
+                    addTaskViewModel.insertTaskFirebase(task, newTaskId)
+                } else {
+                    if (intent.hasExtra(LAST_TASK_ID)) {
+                        val newTaskId = intent.getStringExtra(LAST_TASK_ID)!!.toInt() + 1
+                        addTaskViewModel.insertTaskFirebase(task, newTaskId)
+                    }
+                }
+                withContext(Main) {
                     setResult(Activity.RESULT_OK)
                     finish()
                 }
@@ -100,7 +110,8 @@ class AddTaskActivity: AppCompatActivity() {
     }
 
     companion object {
-        const val TASK_ID = "task_id"
+        const val LAST_TASK_ID = "last_task_id"
+        const val TASK = "task"
     }
 
 }

@@ -1,39 +1,43 @@
 package com.andersonpimentel.todolist.ui
 
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.ViewModelProvider
 import com.andersonpimentel.todolist.R
 import com.andersonpimentel.todolist.databinding.ActivityMainBinding
-import com.andersonpimentel.todolist.datasource.TaskDataSource
+import com.andersonpimentel.todolist.model.AppRepository
 import com.andersonpimentel.todolist.ui.signin.LoginActivity
+import com.andersonpimentel.todolist.viewmodels.MainViewModel
 import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Dispatchers.Main
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private val adapter by lazy {  TaskListAdapter()  }
+    private lateinit var mainViewModel: MainViewModel
+    private var repository = AppRepository()
+    private var lastTaskId: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        verifyAuthentication();
+
+        mainViewModel = ViewModelProvider(
+            this,
+            MainViewModel.MainViewModelFactory(repository)
+        ).get(MainViewModel::class.java)
 
         setSupportActionBar(binding.mainToolbar)
 
-        binding.rvTasks.adapter = adapter
-        //updateList()
+        verifyAuthentication()
+        updateList()
         insertListeners()
-
+        binding.rvTasks.adapter = adapter
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -42,7 +46,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        var item2 = binding.mainToolbar.menu.getItem(0)
+        val item2 = binding.mainToolbar.menu.getItem(0)
         when (item2.itemId) {
             R.id.logout -> {
                 FirebaseAuth.getInstance().signOut()
@@ -53,45 +57,42 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun verifyAuthentication() {
-        if (FirebaseAuth.getInstance().uid.isNullOrBlank()){
+        if (mainViewModel.verifyAuthentication()){
             val intent = Intent(this, LoginActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK + Intent.FLAG_ACTIVITY_NEW_TASK
             startActivity(intent)
+        } else{
+            mainViewModel.getTaskListFirebase()
         }
     }
 
     private fun insertListeners() {
         binding.fab.setOnClickListener {
-            startActivityForResult(Intent(this, AddTaskActivity::class.java), CREATE_NEW_TASK)
-        }
-
-        adapter.listenerEdit = {
             val intent = Intent(this, AddTaskActivity::class.java)
-            intent.putExtra(AddTaskActivity.TASK_ID, it.id)
+            intent.putExtra(AddTaskActivity.LAST_TASK_ID, lastTaskId.toString())
             startActivityForResult(intent, CREATE_NEW_TASK)
         }
-
-        adapter.listenerDelete = {
-            TaskDataSource.deleteTask(it)
-            updateList()
+        adapter.listenerEdit = { task ->
+            val intent = Intent(this, AddTaskActivity::class.java)
+            intent.putExtra(AddTaskActivity.TASK, task)
+            startActivityForResult(intent, CREATE_NEW_TASK)
         }
-
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == CREATE_NEW_TASK && resultCode == RESULT_OK) updateList()
+        adapter.listenerDelete = {
+            mainViewModel.removeTaskFirebase(it.id)
+        }
     }
 
     private fun updateList(){
-        //val list = TaskDataSource.getList()
-        CoroutineScope(Dispatchers.IO).launch {
-            val listFirebase = TaskDataSource.getListFirebase(FirebaseAuth.getInstance().uid)
-            withContext(Main){
-                binding.includeEmpty.emptyState.visibility = if(listFirebase.isEmpty()) View.VISIBLE
-                else View.GONE
-                adapter.submitList(listFirebase)
+        binding.includeEmpty.emptyState.visibility = View.VISIBLE
+        mainViewModel.listTask.observe(this){ listTasks ->
+            if(mainViewModel.verifyListIsEmpty(listTasks)){
+                binding.includeEmpty.emptyState.visibility = View.VISIBLE
+            }else{
+                lastTaskId = listTasks[listTasks.lastIndex].id
+                binding.includeEmpty.emptyState.visibility = View.GONE
             }
+            adapter.submitList(listTasks)
+            adapter.notifyDataSetChanged()
         }
     }
 
